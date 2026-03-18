@@ -39,10 +39,14 @@ async function signup(req, res) {
 
     res.status(201).json({ token, user: userResponse });
   } catch (err) {
+    console.error("Signup error:", err);
     if (err.code === 11000) {
       return res.status(409).json({ error: "Email already registered" });
     }
-    res.status(500).json({ error: "Registration failed" });
+    res.status(500).json({
+      error: "Registration failed",
+      ...(process.env.NODE_ENV !== "production" && { details: err.message }),
+    });
   }
 }
 
