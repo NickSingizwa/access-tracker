@@ -7,6 +7,9 @@ const certificateSchema = new mongoose.Schema(
     certificateNumber: { type: String, required: true },
     issueDate: { type: Date, required: true },
     expiryDate: { type: Date, required: true },
+    notified: { type: Boolean, default: false },
+    filePath: { type: String }, // Path to uploaded certificate file
+    fileName: { type: String }, // Original file name
   },
   { versionKey: false }
 );

@@ -19,9 +19,26 @@ function toServiceResponse(doc) {
 
 async function getAll(req, res) {
   try {
-    const services = await Service.find().sort({ name: 1 });
+    const raw = req.query.search;
+    const search = Array.isArray(raw) ? raw[0] : raw;
+    let query = {};
+
+    const term = typeof search === "string" && search.trim();
+    if (term) {
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query = {
+        $or: [
+          { name: { $regex: escaped, $options: "i" } },
+          { category: { $regex: escaped, $options: "i" } },
+          { description: { $regex: escaped, $options: "i" } },
+        ],
+      };
+    }
+
+    const services = await Service.find(query).sort({ name: 1 });
     res.json(services.map(toServiceResponse));
   } catch (err) {
+    console.error("Service search error:", err);
     res.status(500).json({ error: "Failed to fetch services" });
   }
 }
@@ -75,4 +92,54 @@ async function create(req, res) {
   }
 }
 
-module.exports = { getAll, getById, create };
+async function resolveServiceByParam(id) {
+  if (/^[a-f\d]{24}$/i.test(id)) {
+    return Service.findById(id);
+  }
+  return Service.findOne({ slug: id });
+}
+
+async function update(req, res) {
+  try {
+    const { id } = req.params;
+    const service = await resolveServiceByParam(id);
+
+    if (!service) {
+      return res.status(404).json({ error: "Service not found" });
+    }
+
+    const { name, category, description, requirements, stages, slug } = req.body;
+
+    if (name !== undefined) service.name = name;
+    if (category !== undefined) service.category = category;
+    if (description !== undefined) service.description = description;
+    if (Array.isArray(requirements)) {
+      service.requirements = requirements;
+    }
+    if (Array.isArray(stages)) {
+      service.stages = stages.map((s) => ({
+        stageName: s.stageName || s.name || "",
+        office: s.office || "",
+        expectedTime: s.expectedTime || s.time || "",
+      }));
+    }
+    if (slug !== undefined && typeof slug === "string" && slug.trim()) {
+      service.slug = slug.trim();
+    }
+
+    if (!service.name || !service.category || !service.description) {
+      return res.status(400).json({ error: "Name, category, and description are required" });
+    }
+
+    await service.save();
+    res.json(toServiceResponse(service));
+  } catch (err) {
+    console.error("Service update error:", err);
+    if (err.code === 11000) {
+      return res.status(409).json({ error: "Slug already in use" });
+    }
+    res.status(500).json({ error: "Failed to update service" });
+  }
+}
+
+module.exports = { getAll, getById, create, update };

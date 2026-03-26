@@ -8,10 +8,25 @@ import { Dashboard } from "./pages/Dashboard";
 import { Services } from "./pages/Services";
 import { ServiceDetails } from "./pages/ServiceDetails";
 import { Certificates } from "./pages/Certificates";
+import { Admin } from "./pages/Admin";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, user, authReady } = useAuth();
+  if (!authReady) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-12 text-center text-slate-600">
+        Loading…
+      </div>
+    );
+  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== "admin") return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
@@ -23,6 +38,7 @@ function AppLayout() {
       <Navbar
         isAuthenticated={isAuthenticated}
         userName={user?.fullName}
+        userRole={user?.role}
         onLogout={logout}
       />
       <main>
@@ -60,6 +76,14 @@ function AppLayout() {
               <ProtectedRoute>
                 <Certificates />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
             }
           />
           <Route path="*" element={<Navigate to="/" replace />} />

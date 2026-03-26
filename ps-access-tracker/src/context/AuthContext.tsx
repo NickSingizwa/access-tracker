@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { authApi } from "../api/api";
+import { authApi, getToken } from "../api/api";
 import { getSession, clearSession, storeAuth } from "../utils/auth";
 import type { SessionUser } from "../utils/auth";
 
 interface AuthContextType {
   user: SessionUser | null;
   isAuthenticated: boolean;
+  /** True after optional /auth/me refresh finishes (or immediately if no token) */
+  authReady: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (user: SignupData) => Promise<boolean>;
   logout: () => void;
@@ -23,9 +25,23 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(() => getSession());
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    setUser(getSession());
+    const token = getToken();
+    if (!token) {
+      setAuthReady(true);
+      return;
+    }
+
+    authApi
+      .me()
+      .then(({ data }) => {
+        storeAuth(token, data);
+        setUser(data);
+      })
+      .catch(() => {})
+      .finally(() => setAuthReady(true));
   }, []);
 
   useEffect(() => {
@@ -68,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         isAuthenticated: !!user,
+        authReady,
         login,
         signup,
         logout,

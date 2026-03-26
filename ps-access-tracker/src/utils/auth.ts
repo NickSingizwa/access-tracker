@@ -4,6 +4,7 @@ export interface SessionUser {
   id: string;
   fullName: string;
   email: string;
+  role: string;
 }
 
 export function getSession(): SessionUser | null {

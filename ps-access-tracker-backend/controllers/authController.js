@@ -1,9 +1,13 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
+function normalizeRole(role) {
+  return role && String(role).toLowerCase() === "admin" ? "admin" : "user";
+}
+
 function generateToken(user) {
   return jwt.sign(
-    { userId: user._id },
+    { userId: user._id, role: normalizeRole(user.role) },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -35,6 +39,7 @@ async function signup(req, res) {
       id: user._id.toString(),
       fullName: user.fullName,
       email: user.email,
+      role: user.role,
     };
 
     res.status(201).json({ token, user: userResponse });
@@ -73,6 +78,7 @@ async function login(req, res) {
       id: user._id.toString(),
       fullName: user.fullName,
       email: user.email,
+      role: normalizeRole(user.role),
     };
 
     res.json({ token, user: userResponse });
@@ -88,6 +94,7 @@ async function me(req, res) {
       id: user._id.toString(),
       fullName: user.fullName,
       email: user.email,
+      role: normalizeRole(user.role),
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch user" });

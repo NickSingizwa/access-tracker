@@ -1,5 +1,6 @@
 import type { Certificate } from "../types";
 import { isExpiringSoon } from "../utils/certificates";
+import { certificatesApi } from "../api/api";
 
 interface CertificateCardProps {
   certificate: Certificate;
@@ -9,6 +10,22 @@ interface CertificateCardProps {
 
 export function CertificateCard({ certificate, onEdit, onDelete }: CertificateCardProps) {
   const expiringSoon = isExpiringSoon(certificate.expiryDate);
+
+  const handleDownload = async () => {
+    try {
+      const response = await certificatesApi.download(certificate.id);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", certificate.fileName || "certificate");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert("Failed to download file");
+    }
+  };
 
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
@@ -35,9 +52,23 @@ export function CertificateCard({ certificate, onEdit, onDelete }: CertificateCa
           <dt className="text-slate-500">Number</dt>
           <dd className="font-mono text-slate-700">{certificate.certificateNumber}</dd>
         </div>
+        {certificate.fileName && (
+          <div className="flex justify-between">
+            <dt className="text-slate-500">File</dt>
+            <dd className="text-slate-700">{certificate.fileName}</dd>
+          </div>
+        )}
       </dl>
-      {(onEdit || onDelete) && (
+      {(onEdit || onDelete || certificate.fileName) && (
         <div className="mt-4 flex gap-2">
+          {certificate.fileName && (
+            <button
+              onClick={handleDownload}
+              className="rounded border border-blue-200 bg-white px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50"
+            >
+              Download
+            </button>
+          )}
           {onEdit && (
             <button
               onClick={() => onEdit(certificate.id)}

@@ -3,9 +3,11 @@ import type { PublicService } from "../types";
 
 interface ServiceCardProps {
   service: PublicService;
+  isAdmin?: boolean;
+  onEdit?: (service: PublicService) => void;
 }
 
-export function ServiceCard({ service }: ServiceCardProps) {
+export function ServiceCard({ service, isAdmin, onEdit }: ServiceCardProps) {
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow-md">
       <div className="mb-3 flex items-start justify-between gap-2">
@@ -19,12 +21,23 @@ export function ServiceCard({ service }: ServiceCardProps) {
       <p className="mb-4 line-clamp-2 text-sm text-slate-600">
         {service.description}
       </p>
-      <Link
-        to={`/services/${service.id}`}
-        className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-      >
-        View Details
-      </Link>
+      <div className={isAdmin && onEdit ? "flex flex-wrap gap-2" : undefined}>
+        <Link
+          to={`/services/${service.id}`}
+          className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+        >
+          View Details
+        </Link>
+        {isAdmin && onEdit && (
+          <button
+            type="button"
+            onClick={() => onEdit(service)}
+            className="inline-flex items-center rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-medium text-violet-900 transition hover:bg-violet-100"
+          >
+            Edit
+          </button>
+        )}
+      </div>
     </article>
   );
 }

@@ -19,6 +19,15 @@ export interface Certificate {
   issueDate: string;
   expiryDate: string;
   certificateNumber: string;
+  fileName?: string;
+  filePath?: string;
+}
+
+/** Certificate row returned for admin system-wide list */
+export interface AdminCertificate extends Certificate {
+  ownerId?: string;
+  ownerName?: string;
+  ownerEmail?: string;
 }
 
 export interface User {

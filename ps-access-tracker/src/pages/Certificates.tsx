@@ -14,6 +14,7 @@ export function Certificates() {
     issueDate: "",
     expiryDate: "",
     certificateNumber: "",
+    file: null as File | null,
   });
 
   function loadCertificates() {
@@ -34,6 +35,7 @@ export function Certificates() {
       issueDate: "",
       expiryDate: "",
       certificateNumber: "",
+      file: null,
     });
     setEditingId(null);
     setShowForm(false);
@@ -50,6 +52,7 @@ export function Certificates() {
       certificateNumber: form.certificateNumber,
       issueDate: form.issueDate,
       expiryDate: form.expiryDate,
+      file: form.file || undefined,
     };
 
     if (editingId) {
@@ -83,6 +86,7 @@ export function Certificates() {
       issueDate: cert.issueDate,
       expiryDate: cert.expiryDate,
       certificateNumber: cert.certificateNumber,
+      file: null,
     });
     setEditingId(id);
     setShowForm(true);
@@ -177,6 +181,21 @@ export function Certificates() {
                 required
               />
             </div>
+          </div>
+          <div className="mt-4">
+            <label htmlFor="certificateFile" className="mb-1 block text-sm font-medium text-slate-700">
+              Certificate File (Optional)
+            </label>
+            <input
+              id="certificateFile"
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => setForm((f) => ({ ...f, file: e.target.files?.[0] || null }))}
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Accepted formats: PDF, DOC, DOCX, JPG, JPEG, PNG (max 10MB)
+            </p>
           </div>
           <div className="mt-4 flex gap-2">
             <button
