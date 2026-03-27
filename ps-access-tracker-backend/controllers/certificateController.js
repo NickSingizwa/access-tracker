@@ -1,4 +1,5 @@
 const Certificate = require("../models/Certificate");
+const { sendExpiryReminderIfNeeded, isExpiringSoonWindow } = require("../utils/certificateReminders");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -115,6 +116,8 @@ async function create(req, res) {
 
     const certificate = await Certificate.create(certificateData);
 
+    await sendExpiryReminderIfNeeded(certificate._id);
+
     res.status(201).json(toCertificateResponse(certificate));
   } catch (err) {
     console.error("Certificate create error:", err);
@@ -169,6 +172,11 @@ async function update(req, res) {
     if (issueDate) certificate.issueDate = new Date(issueDate);
     if (expiryDate) certificate.expiryDate = new Date(expiryDate);
 
+    const effectiveExpiry = certificate.expiryDate;
+    if (!isExpiringSoonWindow(effectiveExpiry)) {
+      certificate.notified = false;
+    }
+
     // Handle file upload if present
     if (req.file) {
       try {
@@ -188,6 +196,9 @@ async function update(req, res) {
     }
 
     await certificate.save();
+
+    await sendExpiryReminderIfNeeded(certificate._id);
+
     res.json(toCertificateResponse(certificate));
   } catch (err) {
     console.error("Certificate update error:", err);

@@ -3,13 +3,11 @@ const express = require("express");
 const cors = require("cors");
 const cron = require("node-cron");
 const { connectDB } = require("./config/db");
-const { sendEmail } = require("./config/mailer");
+const { runScheduledExpiryChecks } = require("./utils/certificateReminders");
 const authRoutes = require("./routes/authRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const certificateRoutes = require("./routes/certificateRoutes");
 const Service = require("./models/Service");
-const Certificate = require("./models/Certificate");
-const User = require("./models/User");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -26,37 +24,8 @@ app.use("/api/certificates", certificateRoutes);
 // Serve uploaded files statically
 app.use("/uploads", express.static("uploads"));
 
-async function checkExpiringCertificates() {
-  try {
-    const sevenDaysFromNow = new Date();
-    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-
-    const expiringCertificates = await Certificate.find({
-      expiryDate: { $lte: sevenDaysFromNow },
-      notified: false,
-    }).populate('userId', 'email fullName');
-
-    for (const cert of expiringCertificates) {
-      const user = cert.userId;
-      if (user && user.email) {
-        const subject = "Certificate Expiry Reminder";
-        const message = `Dear ${user.fullName},\n\nYour certificate "${cert.certificateName}" will expire on ${cert.expiryDate.toDateString()}. Please renew it to avoid any issues.\n\nBest regards,\nPublic Service Access Tracker`;
-
-        await sendEmail(user.email, subject, message);
-
-        // Mark as notified
-        await Certificate.findByIdAndUpdate(cert._id, { notified: true });
-      }
-    }
-
-    console.log(`Checked ${expiringCertificates.length} expiring certificates`);
-  } catch (error) {
-    console.error("Error checking expiring certificates:", error);
-  }
-}
-
-// Schedule the cron job to run daily at midnight
-cron.schedule("0 0 * * *", checkExpiringCertificates);
+// Schedule the cron job to run daily at midnight (uses same rules as immediate reminders)
+cron.schedule("0 0 * * *", runScheduledExpiryChecks);
 
 async function seedServices() {
   const count = await Service.countDocuments();
